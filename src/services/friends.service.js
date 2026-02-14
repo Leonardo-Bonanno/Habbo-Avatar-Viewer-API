@@ -1,14 +1,13 @@
-export function splitFriends(friends = []) {
-  const normal = [];
+export function identifyFriends(friends = []) {
+  const all = [];
   const online = [];
 
   for (const friend of friends) {
     if (friend.online) {
       online.push(friend);
-    } else {
-      normal.push(friend);
     }
+    all.push(friend);
   }
 
-  return { achievements, normal };
+  return { online, all };
 }
