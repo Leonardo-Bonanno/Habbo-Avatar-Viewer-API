@@ -13,7 +13,7 @@ export async function getFullProfile(name) {
   const rawRooms = await habboRepository.getRooms(profile.uniqueId);
   const rawGroups = await habboRepository.getGroups(profile.uniqueId);
 
-  const badges = processBadges(rawBadges);
+  const badges = processBadges(profile.uniqueId, rawBadges);
   const ach = countAchievementLevels(rawAch);
   const friends = identifyFriends(rawFriends);
   const enrichedRooms = attachGroupBadgeToRooms(rawRooms, rawGroups);

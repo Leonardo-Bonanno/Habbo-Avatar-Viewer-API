@@ -6,7 +6,8 @@
       "request": "launch",
       "name": "Debug Backend",
       "program": "${workspaceFolder}/server.js",
-      "skipFiles": ["<node_internals>/**"]
+      "skipFiles": ["<node_internals>/**"],
+      "runtimeExecutable": "nodemon"
     }
   ]
 }

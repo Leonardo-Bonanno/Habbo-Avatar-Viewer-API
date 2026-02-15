@@ -1,3 +1,5 @@
+import * as badgesHistory from "../repositories/badgesHistory.repository.js";
+
 export function splitBadges(badges = []) {
   const achievements = [];
   const normal = [];
@@ -13,24 +15,49 @@ export function splitBadges(badges = []) {
   return { achievements, normal };
 }
 
-export function processBadges(badges = [], previous = []) {
-  const { achievements, normal } = splitBadges(badges);
+export function processBadges(uniqueId, currentBadges = []) {
+  const ONE_DAY = 24 * 60 * 60 * 1000;
 
-  const oldCodes = new Set(previous.map(b => b.code));
+  const savedBadges = badgesHistory.getUserBadges(uniqueId) || [];
 
-  const newBadges = normal.filter(b => !oldCodes.has(b.code));
+  const savedMap = new Map(
+    savedBadges.map(b => [b.code, b])
+  );
+
+  const syncedBadges = currentBadges.map(badge => {
+    if (savedMap.has(badge.code)) {
+      return savedMap.get(badge.code);
+    }
+
+    return {
+      ...badge,
+      detectedAt: new Date().toISOString()
+    };
+  });
+
+  syncedBadges.forEach(badge => {
+    const detectedTime = new Date(badge.detectedAt).getTime();
+    badge.isNew = Date.now() - detectedTime < ONE_DAY;
+  });
+
+  syncedBadges.sort((a, b) => {
+    return new Date(b.detectedAt) - new Date(a.detectedAt);
+  });
+
+  const { achievements, normal } = splitBadges(syncedBadges);
+
+  badgesHistory.saveUserBadges(uniqueId, syncedBadges);
 
   return {
     badges: {
-    badges,
-    normal,
-    achievements,
+      badges: syncedBadges,
+      normal,
+      achievements,
     },
     counts: {
-      total: badges.length,
+      total: syncedBadges.length,
       badges: normal.length,
       achievements: achievements.length,
-    },
-    newBadges
+    }
   };
 }
