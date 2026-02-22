@@ -1,41 +1,41 @@
 import * as badgesHistory from "../repositories/badgesHistory.repository.js";
 
-export function splitBadges(badges = []) {
-  const achievements = [];
-  const normal = [];
-
-  for (const badge of badges) {
-    if (badge.code?.startsWith("ACH_")) {
-      achievements.push(badge);
-    } else {
-      normal.push(badge);
-    }
-  }
-
-  return { achievements, normal };
-}
-
-export function processBadges(uniqueId, currentBadges = []) {
+export async function processBadges(uniqueId, currentBadges = [], nickname) {
   const ONE_DAY = 24 * 60 * 60 * 1000;
 
-  const savedBadges = badgesHistory.getUserBadges(uniqueId) || [];
+  let user = await badgesHistory.upsertUser(uniqueId, nickname);
 
-  const savedMap = new Map(
-    savedBadges.map(b => [b.code, b])
-  );
+  const savedBadges = await badgesHistory.findBadgesByUser(uniqueId);
 
-  const syncedBadges = currentBadges.map(badge => {
+  const savedMap = new Map(savedBadges.map((b) => [b.code, b]));
+
+  const newBadges = [];
+
+  const syncedBadges = currentBadges.map((badge) => {
     if (savedMap.has(badge.code)) {
       return savedMap.get(badge.code);
     }
 
-    return {
-      ...badge,
-      detectedAt: new Date().toISOString()
+    const newBadge = {
+      code: badge.code,
+      name: badge.name,
+      description: badge.description,
+      detectedAt: new Date(),
+      userId: uniqueId,
     };
+
+    newBadges.push(newBadge);
+
+    return newBadge;
   });
 
-  syncedBadges.forEach(badge => {
+  if (newBadges.length > 0) {
+    await badgesHistory.createManyBadges(newBadges);
+  }
+
+  await badgesHistory.updateLastCheck(uniqueId, new Date());
+
+  syncedBadges.forEach((badge) => {
     const detectedTime = new Date(badge.detectedAt).getTime();
     badge.isNew = Date.now() - detectedTime < ONE_DAY;
   });
@@ -45,8 +45,6 @@ export function processBadges(uniqueId, currentBadges = []) {
   });
 
   const { achievements, normal } = splitBadges(syncedBadges);
-
-  badgesHistory.saveUserBadges(uniqueId, syncedBadges);
 
   return {
     badges: {
@@ -58,6 +56,19 @@ export function processBadges(uniqueId, currentBadges = []) {
       total: syncedBadges.length,
       badges: normal.length,
       achievements: achievements.length,
-    }
+    },
   };
+}
+
+export function splitBadges(badges = []) {
+  const achievements = [];
+  const normal = [];
+  for (const badge of badges) {
+    if (badge.code?.startsWith("ACH_")) {
+      achievements.push(badge);
+    } else {
+      normal.push(badge);
+    }
+  }
+  return { achievements, normal };
 }

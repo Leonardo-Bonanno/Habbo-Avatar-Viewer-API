@@ -1,36 +1,32 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import prisma from "../config/prisma.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const FILE_PATH = path.join(__dirname, "../../data/badges-history.json");
-
-function loadFile() {
-  if (!fs.existsSync(FILE_PATH)) {
-    return {};
-  }
-
-  return JSON.parse(fs.readFileSync(FILE_PATH, "utf-8"));
+export async function upsertUser(userId, nickname) {
+  return prisma.user.upsert({
+    where: { id: userId },
+    update: { nickname: nickname },
+    create: {
+      id: userId,
+      nickname: nickname,
+    },
+  });
 }
 
-function saveFile(data) {
-  fs.writeFileSync(FILE_PATH, JSON.stringify(data, null, 2));
+export async function updateLastCheck(userId, date) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { lastCheck: date },
+  });
 }
 
-export function getUserBadges(username) {
-  const data = loadFile();
-  return data[username]?.badges || [];
+export async function findBadgesByUser(userId) {
+  return prisma.badge.findMany({
+    where: { userId },
+  });
 }
 
-export function saveUserBadges(username, badges) {
-  const data = loadFile();
-
-  data[username] = {
-    lastCheck: new Date().toISOString(),
-    badges
-  };
-
-  saveFile(data);
+export async function createManyBadges(badges) {
+  return prisma.badge.createMany({
+    data: badges,
+    skipDuplicates: true,
+  });
 }

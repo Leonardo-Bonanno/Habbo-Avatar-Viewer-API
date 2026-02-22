@@ -5,15 +5,15 @@ import { identifyFriends } from "./friends.service.js";
 import { identifyRooms, attachGroupBadgeToRooms } from "./rooms.service.js";
 import { identifyGroups } from "./groups.service.js";
 
-export async function getFullProfile(name) {
-  const profile = await habboRepository.getProfile(name);
+export async function getFullProfile(nickname) {
+  const profile = await habboRepository.getProfile(nickname);
   const rawBadges = await habboRepository.getBadges(profile.uniqueId);
   const rawAch = await habboRepository.getAch(profile.uniqueId);
   const rawFriends = await habboRepository.getFriends(profile.uniqueId);
   const rawRooms = await habboRepository.getRooms(profile.uniqueId);
   const rawGroups = await habboRepository.getGroups(profile.uniqueId);
 
-  const badges = processBadges(profile.uniqueId, rawBadges);
+  const badges = await processBadges(profile.uniqueId, rawBadges, nickname);
   const ach = countAchievementLevels(rawAch);
   const friends = identifyFriends(rawFriends);
   const enrichedRooms = attachGroupBadgeToRooms(rawRooms, rawGroups);
